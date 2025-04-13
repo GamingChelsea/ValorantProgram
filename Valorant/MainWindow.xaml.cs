@@ -14,24 +14,41 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Net.Http;
 
+
 namespace Valorant
 {
     public partial class MainWindow : Window
     {
         private readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _apiKey;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            string testApiKey = Environment.GetEnvironmentVariable("VALORANT_API_KEY");
+            MessageBox.Show($"Gefundener API-Schlüssel: {testApiKey ?? "Nicht gefunden"}");
+
+            _apiKey = Environment.GetEnvironmentVariable("VALORANT_API_KEY");
+
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                MessageBox.Show("API-Schlüssel nicht gefunden. Bitte Umgebungsvariable 'VALORANT_API_KEY' setzen.", "Fehler", MessageBoxButton.OK);
+            }
         }
 
         public async Task GetPuuidFromName()
         {
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                StatsBox.Text = "API-Schlüssel fehlt. Bitte konfigurieren.";
+                return;
+            }
+
             string realPlayerName = null;
             string realPlayerTag = null;
 
             string apiUrl = "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/GamingChelseaTV/EUW";
-            string apiKey = "RGAPI-ee59852f-3544-4827-aac4-a6c5c90e79f4";
 
             TextBox playerNameInput = PlayerNameInput;
             string InputName = playerNameInput.Text;
@@ -66,7 +83,7 @@ namespace Valorant
                 }
 
                 // Setze den API-Schlüssel in den Header
-                _httpClient.DefaultRequestHeaders.Add("X-Riot-Token", apiKey);
+                _httpClient.DefaultRequestHeaders.Add("X-Riot-Token", _apiKey);
 
                 StatsBox.Text = "Statistiken werden geladen...";
 

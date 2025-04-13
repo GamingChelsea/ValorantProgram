@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Net.Http;
+using System.Xml.Linq;
+using Newtonsoft.Json;
 
 
 namespace Valorant
@@ -26,9 +28,8 @@ namespace Valorant
         {
             InitializeComponent();
 
-            string testApiKey = Environment.GetEnvironmentVariable("VALORANT_API_KEY");
-            MessageBox.Show($"Gefundener API-Schlüssel: {testApiKey ?? "Nicht gefunden"}");
 
+            // Set the API key from the environment variable
             _apiKey = Environment.GetEnvironmentVariable("VALORANT_API_KEY");
 
             if (string.IsNullOrEmpty(_apiKey))
@@ -37,18 +38,12 @@ namespace Valorant
             }
         }
 
-        public async Task GetPuuidFromName()
+        public async Task<dynamic> GetPuuidFromName()
         {
-            if (string.IsNullOrEmpty(_apiKey))
-            {
-                StatsBox.Text = "API-Schlüssel fehlt. Bitte konfigurieren.";
-                return;
-            }
+            string realPlayerName;
+            string realPlayerTag;
 
-            string realPlayerName = null;
-            string realPlayerTag = null;
-
-            string apiUrl = "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/GamingChelseaTV/EUW";
+            string apiUrl = "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/";
 
             TextBox playerNameInput = PlayerNameInput;
             string InputName = playerNameInput.Text;
@@ -56,33 +51,41 @@ namespace Valorant
             if (string.IsNullOrWhiteSpace(InputName) || InputName == "Gebe deinen Valorant Namen ein:")
             {
                 StatsBox.Text = "Bitte gib einen Spielernamen ein.";
-                return;
+                return null; // Ensure a return value
             }
 
-            //Spilt the name and tag
+            // Check if the API key is set
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                StatsBox.Text = "API-Schlüssel fehlt. Bitte konfigurieren.";
+                return null; // Ensure a return value
+            }
+
+            // Split the name and tag
             string[] nameParts = InputName.Split('#');
 
             if (nameParts.Length == 2)
             {
                 realPlayerName = nameParts[0];
-                realPlayerTag = "#" + nameParts[1];
-                StatsBox.Text = "Spielername: " + realPlayerName + "\nTag: " + realPlayerTag;
+                realPlayerTag = nameParts[1];
+                apiUrl = apiUrl + $"{realPlayerName}/{realPlayerTag}";
             }
             else
             {
                 StatsBox.Text = "Ungültiges Format. Bitte gib den Namen im Format 'Name#Tag' ein.";
-                return;
+                return null; // Ensure a return value
             }
-            //get Puuid and make API Call
+
+            // Get Puuid and make API Call
             try
             {
-                // Entferne vorherige Header, um doppelte Einträge zu vermeiden
+                // Remove previous headers to avoid duplicates
                 if (_httpClient.DefaultRequestHeaders.Contains("X-Riot-Token"))
                 {
                     _httpClient.DefaultRequestHeaders.Remove("X-Riot-Token");
                 }
 
-                // Setze den API-Schlüssel in den Header
+                // Set the API key in the header
                 _httpClient.DefaultRequestHeaders.Add("X-Riot-Token", _apiKey);
 
                 StatsBox.Text = "Statistiken werden geladen...";
@@ -92,16 +95,20 @@ namespace Valorant
                 if (response.IsSuccessStatusCode)
                 {
                     string responseBody = await response.Content.ReadAsStringAsync();
-                    StatsBox.Text = $"Antwort: {responseBody}";
+                    dynamic json = JsonConvert.DeserializeObject(responseBody);
+                    StatsBox.Text = $"Puuid: {json.puuid}";
+                    return json.puuid; // Ensure a return value
                 }
                 else
                 {
                     StatsBox.Text = $"Fehler: {response.StatusCode}";
+                    return null; // Ensure a return value
                 }
             }
             catch (Exception ex)
             {
                 StatsBox.Text = $"Fehler: {ex.Message}";
+                return null; // Ensure a return value
             }
         }
 

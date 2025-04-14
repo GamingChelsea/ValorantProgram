@@ -5,7 +5,6 @@
        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
        xmlns:local="clr-namespace:Valorant"
        mc:Ignorable="d"        
-       Loaded="Window_Loaded"
        Title="Valorant" Height="450" Width="800">
     <Grid>
         <TextBlock x:Name="StatsBox" Text="Willkommen zu Valorant Stats!" Margin="0,80,0,0"/>
